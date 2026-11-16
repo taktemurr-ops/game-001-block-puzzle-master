@@ -190,6 +190,19 @@ class _BlockPuzzleScreenState extends State<BlockPuzzleScreen> {
                   Row(children: List.generate(3, pieceCard)),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
+                    onPressed: game.isGameOver ? null : () => setState(() {
+                      final move = game.suggestedMove;
+                      if (move == null) {
+                        notice = 'No legal moves available.';
+                      } else {
+                        selectedPiece = move.trayIndex;
+                        notice = 'Hint: place selected shape at row ${move.row + 1}, column ${move.column + 1}.';
+                      }
+                    }),
+                    icon: const Icon(Icons.lightbulb_outline),
+                    label: const Text('Hint'),
+                  ),
+                  OutlinedButton.icon(
                     onPressed: game.canUndo ? () => setState(() {
                       game.undo();
                       selectedPiece = game.tray.indexWhere((p) => p != null);
