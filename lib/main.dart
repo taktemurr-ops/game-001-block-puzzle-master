@@ -55,6 +55,8 @@ class _BlockPuzzleScreenState extends State<BlockPuzzleScreen> {
 
   Widget cell(int row, int column) {
     final occupied = game.board[row][column];
+    final selected = game.tray[selectedPiece];
+    final canDrop = selected != null && game.canPlace(selected, row, column);
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(2),
@@ -68,7 +70,7 @@ class _BlockPuzzleScreenState extends State<BlockPuzzleScreen> {
               decoration: BoxDecoration(
                 color: occupied
                     ? const Color(0xFF4CC9F0)
-                    : const Color(0xFF253B58),
+                    : canDrop ? const Color(0xFF24564C) : const Color(0xFF253B58),
                 borderRadius: BorderRadius.circular(5),
               ),
             ),
@@ -104,21 +106,30 @@ class _BlockPuzzleScreenState extends State<BlockPuzzleScreen> {
                       children: [
                         Text(piece.id, style: const TextStyle(fontSize: 12)),
                         const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 3,
-                          runSpacing: 3,
-                          children: piece.cells
-                              .map(
-                                (_) => Container(
-                                  width: 15,
-                                  height: 15,
-                                  decoration: BoxDecoration(
-                                    color: Colors.lightBlueAccent,
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
-                              )
-                              .toList(),
+                        SizedBox(
+                          height: 52,
+                          child: Builder(builder: (context) {
+                            final height = piece.cells.map((c) => c.row).reduce((a, b) => a > b ? a : b) + 1;
+                            final width = piece.cells.map((c) => c.column).reduce((a, b) => a > b ? a : b) + 1;
+                            return Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(height, (r) => Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(width, (c) {
+                                  final filled = piece.cells.any((cell) => cell.row == r && cell.column == c);
+                                  return Container(
+                                    width: 13,
+                                    height: 13,
+                                    margin: const EdgeInsets.all(1),
+                                    decoration: BoxDecoration(
+                                      color: filled ? Colors.lightBlueAccent : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  );
+                                }),
+                              )),
+                            );
+                          }),
                         ),
                       ],
                     ),
