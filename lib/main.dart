@@ -188,6 +188,17 @@ class _BlockPuzzleScreenState extends State<BlockPuzzleScreen> {
                   Text(notice, textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   Row(children: List.generate(3, pieceCard)),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: game.canUndo ? () => setState(() {
+                      game.undo();
+                      selectedPiece = game.tray.indexWhere((p) => p != null);
+                      if (selectedPiece < 0) selectedPiece = 0;
+                      notice = 'Previous move restored.';
+                    }) : null,
+                    icon: const Icon(Icons.undo),
+                    label: const Text('Undo'),
+                  ),
                   if (game.isGameOver)
                     Padding(
                       padding: const EdgeInsets.only(top: 10),
