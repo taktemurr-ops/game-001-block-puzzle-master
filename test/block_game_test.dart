@@ -47,7 +47,7 @@ void main() {
     test('reports loss when no offered piece fits', () {
       final game = BlockGame(random: Random(1));
       for (final row in game.board) {
-        for (var c = 0; c < 8; c++) row[c] = true;
+        for (var c = 0; c < 8; c++) { row[c] = true; }
       }
       expect(game.isGameOver, true);
     });
