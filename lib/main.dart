@@ -105,9 +105,9 @@ class _BlockPuzzleScreenState extends State<BlockPuzzleScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(piece.id, style: const TextStyle(fontSize: 12)),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 2),
                         SizedBox(
-                          height: 52,
+                          height: 44,
                           child: Builder(builder: (context) {
                             final height = piece.cells.map((c) => c.row).reduce((a, b) => a > b ? a : b) + 1;
                             final width = piece.cells.map((c) => c.column).reduce((a, b) => a > b ? a : b) + 1;
@@ -159,8 +159,7 @@ class _BlockPuzzleScreenState extends State<BlockPuzzleScreen> {
             constraints: const BoxConstraints(maxWidth: 580),
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: ListView(
                 children: [
                   Text('SCORE  ${game.score}',
                       key: const ValueKey('score'),
