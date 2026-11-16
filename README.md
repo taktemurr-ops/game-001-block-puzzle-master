@@ -36,3 +36,8 @@ been compiled or device-tested in this ChatGPT session.
 
 See `docs/` for the working scope. This is an original implementation, not a
 copy of third-party assets, branded layouts or proprietary gameplay code.
+
+## Recent iteration
+- Piece tray now previews the actual geometric block shape.
+- Available board anchors are highlighted for the selected piece.
+- Next: responsive layout and confirmed Flutter CI results.
