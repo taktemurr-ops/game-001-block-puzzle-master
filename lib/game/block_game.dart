@@ -34,6 +34,22 @@ class BlockGame {
   int score = 0;
   int placed = 0;
   int clearedLines = 0;
+  final List<({List<List<bool>> cells, List<Piece?> tray, int score, int placed, int clearedLines})> _history = [];
+
+  bool get canUndo => _history.isNotEmpty;
+
+  bool undo() {
+    if (_history.isEmpty) return false;
+    final prev = _history.removeLast();
+    for (var r = 0; r < size; r++) {
+      board[r].setAll(0, prev.cells[r]);
+    }
+    tray.setAll(0, prev.tray);
+    score = prev.score;
+    placed = prev.placed;
+    clearedLines = prev.clearedLines;
+    return true;
+  }
 
   BlockGame({Random? random}) : random = random ?? Random() {
     refill();
@@ -53,6 +69,14 @@ class BlockGame {
     if (trayIndex < 0 || trayIndex >= tray.length) return false;
     final piece = tray[trayIndex];
     if (piece == null || !canPlace(piece, row, column)) return false;
+    _history.add((
+      cells: board.map((r) => List<bool>.from(r)).toList(),
+      tray: List<Piece?>.from(tray),
+      score: score,
+      placed: placed,
+      clearedLines: clearedLines,
+    ));
+    if (_history.length > 20) _history.removeAt(0);
 
     for (final cell in piece.cells) {
       board[row + cell.row][column + cell.column] = true;
