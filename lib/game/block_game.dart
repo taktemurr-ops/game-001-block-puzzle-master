@@ -45,10 +45,14 @@ class BlockGame {
     var bestLines = -1;
     for (var index = 0; index < tray.length; index++) {
       final piece = tray[index];
-      if (piece == null) continue;
+      if (piece == null) {
+        continue;
+      }
       for (var row = 0; row < size; row++) {
         for (var column = 0; column < size; column++) {
-          if (!canPlace(piece, row, column)) continue;
+          if (!canPlace(piece, row, column)) {
+            continue;
+          }
           final fullRows = <int>{};
           final fullColumns = <int>{};
           for (final cell in piece.cells) {
@@ -56,10 +60,14 @@ class BlockGame {
             final col = column + cell.column;
             if (List.generate(size, (c) => board[r][c] ||
                 piece.cells.any((p) => row + p.row == r && column + p.column == c))
-                .every((filled) => filled)) fullRows.add(r);
+                .every((filled) => filled)) {
+              fullRows.add(r);
+            }
             if (List.generate(size, (rr) => board[rr][col] ||
                 piece.cells.any((p) => row + p.row == rr && column + p.column == col))
-                .every((filled) => filled)) fullColumns.add(col);
+                .every((filled) => filled)) {
+              fullColumns.add(col);
+            }
           }
           final lines = fullRows.length + fullColumns.length;
           if (lines > bestLines) {
