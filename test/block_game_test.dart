@@ -44,6 +44,19 @@ void main() {
       expect(List.generate(8, (r) => game.board[r][4]).every((v) => !v), true);
     });
 
+    test('undo restores occupied cells, score and available piece', () {
+      final game = BlockGame(random: Random(2));
+      game.tray[0] = const Piece('single', [Cell(0, 0)]);
+      expect(game.place(0, 0, 0), true);
+      expect(game.canUndo, true);
+      expect(game.undo(), true);
+      expect(game.board[0][0], false);
+      expect(game.score, 0);
+      expect(game.placed, 0);
+      expect(game.tray[0]?.id, 'single');
+      expect(game.canUndo, false);
+    });
+
     test('reports loss when no offered piece fits', () {
       final game = BlockGame(random: Random(1));
       for (final row in game.board) {
