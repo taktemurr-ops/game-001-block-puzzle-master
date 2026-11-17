@@ -65,4 +65,20 @@ void main() {
         receiptId: 'r1', userOptedIn: true), isFalse);
     expect(verifier.calls, 0);
   });
+  test('same receipt cannot reward another placement', () async {
+    final gate = RewardClaimGate(_Verifier(() async => true));
+    expect(await gate.claim(accountId: 'a', placementId: 'hint',
+        receiptId: 'shared-receipt', userOptedIn: true), isTrue);
+    expect(await gate.claim(accountId: 'a', placementId: 'extra_move',
+        receiptId: 'shared-receipt', userOptedIn: true), isFalse);
+  });
+
+  test('same receipt cannot reward another account in one session', () async {
+    final gate = RewardClaimGate(_Verifier(() async => true));
+    expect(await gate.claim(accountId: 'a', placementId: 'hint',
+        receiptId: 'shared-receipt', userOptedIn: true), isTrue);
+    expect(await gate.claim(accountId: 'b', placementId: 'hint',
+        receiptId: 'shared-receipt', userOptedIn: true), isFalse);
+  });
+
 }
