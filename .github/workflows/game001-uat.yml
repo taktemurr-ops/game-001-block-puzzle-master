@@ -1,6 +1,11 @@
 name: Game-001 UAT build gate
 on:
   workflow_dispatch:
+    inputs:
+      build_ios:
+        description: 'Also compile unsigned iOS build (macOS runner required)'
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'lib/**'
@@ -67,7 +72,8 @@ jobs:
           retention-days: 14
 
   ios-compile:
-    name: iOS unsigned compile
+    if: github.event_name == 'workflow_dispatch' && inputs.build_ios
+    name: iOS unsigned compile (opt-in)
     runs-on: macos-latest
     timeout-minutes: 50
     steps:
