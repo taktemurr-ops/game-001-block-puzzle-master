@@ -1,43 +1,59 @@
-# Block Puzzle Master
+# Blok Bulmaca Ustası · Block Puzzle Master
 
-**Game Studio 100 | Puzzle | Android / iOS | Flutter**
+**Game Studio 100 · #001 · Bulmaca ve Zekâ** · Flutter · Android · iOS · Web
 
-## Implemented in the current prototype
-- 8×8 interactive block puzzle board
-- Three-piece tray with selectable block shapes
-- Placement rules with occupied-cell and boundary validation
-- Simultaneous full-row/full-column clearing and scoring
-- Game-over detection and restart
-- Pure Dart rules engine (`lib/game/block_game.dart`)
-- Unit tests for core rules (`test/block_game_test.dart`)
+Blokları yerleştir, satırları patlat!
 
-**Controls:** Select a piece below the board, then tap an empty cell where its
-top-left occupied square should land. This is an early interaction model;
-drag-and-drop, visual shape previews, effects, content and polish are future work.
+## Oyun
 
-## Getting started
+8×8 (ve 10×10) tahtaya blok parçalarını sürükleyip bırak; dolu satır ve sütunlar patlar. 21 farklı parça şekli, kombo ve seri bonusu, tahtayı tamamen temizleme bonusu.
+
+- **Bölüm hedefleri:** skor, satır temizleme, elmas toplama
+- **Engeller:** taş bloklar, iki vuruşta kırılan buz, geri sayan bombalar, süreli bölümler, büyük tahta
+- **Güçlendiriciler:** ipucu (en iyi hamle), geri al, çekiç, parçaları yenile, parçayı döndür
+- **Modlar:** Macera (50.000+ bölüm), Klasik sonsuz, Zamana karşı (120 sn), Zen (oyun bitmez), Günün/Haftanın bölümü, 150 meydan okuma
+- Hamle önizlemesi, patlayacak satırların vurgusu, renk körü sembolleri, dokun-yerleştir alternatifi
+- Her bölüm, aynı parça akışıyla yapay zekâ tarafından çözülerek doğrulanır
+
+## Bütün oyunlarda ortak sistemler
+
+| Sistem | Durum | Dosya |
+|---|---|---|
+| 50.000 bölüm + sonsuz bölüm (seed ile deterministik, her bölüm çözülebilirlik testinden geçer) | ✅ | `lib/core/level_plan.dart`, `lib/game/rules.dart` |
+| 500 dünya, her 10 bölümde zorluk, her 50 bölümde yeni mekanik kombinasyonu, her 100 bölümde tema, her 1000 bölümde özel ödül | ✅ | `lib/core/level_plan.dart` |
+| Oyuncu performansına göre zorluk ayarı | ✅ | `AdaptiveDifficulty` |
+| Modlar: Macera, Sonsuz, Zamana karşı, Zen, Günün bölümü, Haftanın bölümü, 150 meydan okuma | ✅ | `lib/app/screens/home.dart` |
+| Günlük giriş ödülü (7 günlük döngü), seri, şans çarkı, günlük sürpriz, geri dönen oyuncu ödülü | ✅ | `lib/core/daily.dart` |
+| 4 günlük + 7 haftalık görev (tarihe göre otomatik yenilenir), günlük rekor, haftalık kişisel hedef | ✅ | `lib/core/missions.dart` |
+| 200+ başarım (50+ gizli) | ✅ | `lib/core/achievements.dart` |
+| Oyuncu seviyesi 1-500, 5 kademe (Başlangıç → Efsane) | ✅ | `lib/core/progression.dart` |
+| 236 koleksiyon parçası: tema, görünüm, rozet, avatar, çerçeve, efekt | ✅ | `lib/core/collection.dart` |
+| İnternetsiz oyun, otomatik kayıt, 3 yedek + yarım kalan yazmayı kurtarma, checksum, sürüm geçişi, yedek kodu ile dışa/içe aktarma | ✅ | `lib/core/save_store.dart`, `lib/core/save_data.dart` |
+| Uygulama kapanınca bölüme kaldığı yerden devam | ✅ | `resume` |
+| Saat manipülasyonu koruması | ✅ | `lib/core/clock.dart` |
+| Çökme döngüsü algılama → güvenli mod, hata günlüğü, performans ölçümü | ✅ | `lib/core/telemetry.dart` |
+| Acil durum yapılandırması (reklam/satın alma/analitik kapatma) | ✅ | `assets/config/emergency.json` |
+| İzinli, çevrimdışı kuyruklu analitik | ✅ | `AnalyticsQueue` |
+| AdMob: ödüllü + geçiş reklamı, sıklık sınırı, UMP/GDPR rızası, yaş kontrolü | ✅ (test kimlikleri) | `lib/app/services/ads_mobile.dart` |
+| Satın alma: reklamsız, premium, altın, ipucu, başlangıç paketi; doğrulama, geri yükleme, iade, tekrar koruması | ✅ (ürünler mağazada açılmalı) | `lib/core/monetization.dart` |
+| 5 dil (TR, EN, DE, ES, FR), renk körü modu, animasyon azaltma, yazı boyutu, solak düzen, titreşim | ✅ | `lib/core/strings.dart`, Ayarlar |
+| Özgün ikon, splash, ses efektleri, müzik, mağaza görselleri (kodla üretilir) | ✅ | `tool/generate_assets.py` |
+| CI: analiz, testler, APK + AAB, Web; iOS (manuel); haftalık 10.000 bölüm + 24 ay simülasyonu | ✅ | `.github/workflows/` |
+
+## Çalıştırma
 
 ```bash
+pip install pillow && python tool/generate_assets.py   # ikon, splash, ses, mağaza görselleri
+flutter create --platforms=android,ios,web --org com.gamestudio100 --project-name game_001_block_puzzle_master .
+python tool/patch_platforms.py                         # AdMob id, izinler, uygulama adı
 flutter pub get
+dart run flutter_launcher_icons && dart run flutter_native_splash:create
 flutter test
-flutter run
+flutter run                                            # veya: flutter run -d chrome
 ```
 
-A Flutter SDK is required. The code has been committed but has **not** yet
-been compiled or device-tested in this ChatGPT session.
+Uzun testler: `flutter test --dart-define=LONG=true test/long_run_test.dart test/soak_test.dart`
 
-## Next steps
-1. Drag-and-drop piece placement with correct shape previews.
-2. Improve the game-over and refill experience, adding a new game confirmation.
-3. Add deterministic level/seed handling and persistent local save.
-4. Introduce modes: classic, time attack, daily challenge and zen.
-5. Add accessibility, localization and analytics.
-6. Integrate consent-aware ads/IAP only after store-policy review.
+## Yayın öncesi yapılacaklar
 
-See `docs/` for the working scope. This is an original implementation, not a
-copy of third-party assets, branded layouts or proprietary gameplay code.
-
-## Recent iteration
-- Piece tray now previews the actual geometric block shape.
-- Available board anchors are highlighted for the selected piece.
-- Next: responsive layout and confirmed Flutter CI results.
+`docs/RELEASE.md` dosyasına bak: AdMob kimlikleri, mağaza ürünleri, imzalama anahtarları, gizlilik politikası adresi.
