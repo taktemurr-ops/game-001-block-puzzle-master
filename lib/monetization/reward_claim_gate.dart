@@ -25,11 +25,11 @@ class RewardClaimGate {
     if (!userOptedIn ||
         accountId.trim().isEmpty ||
         placementId.trim().isEmpty ||
-        receiptId.trim().isEmpty) return false;
+        receiptId.trim().isEmpty) { return false; }
     // A receipt must not be redeemed for another placement or account.
     // The backend must enforce this globally across devices and sessions.
     final key = receiptId;
-    if (_claimed.contains(key) || !_pending.add(key)) return false;
+    if (_claimed.contains(key) || !_pending.add(key)) { return false; }
     try {
       final verified = await verifier.verify(
         accountId: accountId,

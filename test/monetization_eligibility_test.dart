@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/monetization/eligibility.dart';
+import 'package:game_001_block_puzzle_master/monetization/eligibility.dart';
 
 void main() {
   test('interstitial requires adult audience, consent and natural break', () {
