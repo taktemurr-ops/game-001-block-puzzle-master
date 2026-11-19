@@ -1,0 +1,13 @@
+{
+  "name": "Game-001 Android APK Builder",
+  "image": "ghcr.io/cirruslabs/flutter:stable",
+  "postCreateCommand": "bash tools/build_apk_codespaces.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Dart-Code.dart-code",
+        "Dart-Code.flutter"
+      ]
+    }
+  }
+}
