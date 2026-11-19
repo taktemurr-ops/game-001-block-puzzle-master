@@ -18,10 +18,10 @@ void main() {
     final policy = MonetizationPolicy();
     policy.setConsent(true);
     policy.setAudience(Audience.general);
-    for (var i = 0; i < 3; i++) policy.recordCompletedRound();
+    for (var i = 0; i < 3; i++) { policy.recordCompletedRound(); }
     expect(policy.markInterstitialShown(), true);
     expect(policy.markInterstitialShown(), false);
-    for (var i = 0; i < 3; i++) policy.recordCompletedRound();
+    for (var i = 0; i < 3; i++) { policy.recordCompletedRound(); }
     expect(policy.mayShowInterstitial, true);
     policy.setVerifiedAdsRemoved(true);
     expect(policy.mayShowInterstitial, false);
