@@ -130,4 +130,42 @@ void main() {
       expect(rules.build(planner.challenge(c)).validation.ok, isTrue);
     }
   });
+
+  test('Block Sudoku: a full 3x3 box clears and boards are 9x9', () {
+    final cells = List.filled(81, 0);
+    // Fill the top-left box except its bottom-right corner (2,2).
+    for (var y = 0; y < 3; y++) {
+      for (var x = 0; x < 3; x++) {
+        if (x != 2 || y != 2) cells[y * 9 + x] = 1;
+      }
+    }
+    final l = BlockLevel(
+      size: 9,
+      cells: cells,
+      gems: {},
+      bombs: {},
+      goal: const BlockGoal(GoalType.lines, 1),
+      moveLimit: 0,
+      timeLimit: 0,
+      seed: 1,
+      difficulty: 1,
+      zen: false,
+      aiMoves: 0,
+      box: 3,
+    );
+    final g = BlockGame(l);
+    g.tray[0] = const BlockPiece(0, [[0, 0]], 3);
+    expect(g.wouldClear(g.tray[0]!, 2, 2), [18]);
+    final r = g.place(0, 2, 2);
+    expect(r.lines, 1);
+    expect(g.cells.every((c) => c == 0), isTrue);
+
+    final sudoku = BlockRules(sudoku: true, id: 'oyun-blok-sudoku');
+    final sp = LevelPlanner(gameId: sudoku.gameId, optionalMechanics: sudoku.optionalMechanics);
+    for (var n = 1; n <= 30; n++) {
+      final lv = sudoku.finalize(sudoku.build(sp.spec(n)));
+      expect(lv.size, 9);
+      expect(lv.box, 3);
+    }
+  });
 }
