@@ -5,8 +5,14 @@ import 'package:studio_core/core/stats.dart';
 import 'block_engine.dart';
 
 class BlockRules extends GameRules<BlockLevel> {
+  /// Block Sudoku variant: 9x9 board where full 3x3 boxes also clear.
+  final bool sudoku;
+  final String id;
+
+  BlockRules({this.sudoku = false, this.id = 'game-001-block-puzzle-master'});
+
   @override
-  String get gameId => 'game-001-block-puzzle-master';
+  String get gameId => id;
 
   @override
   List<String> get optionalMechanics => const ['obstacle', 'gem', 'ice', 'bomb', 'timer', 'big_board'];
@@ -38,7 +44,7 @@ class BlockRules extends GameRules<BlockLevel> {
       ];
 
   @override
-  BlockLevel generate(LevelSpec spec) => generateBlockLevel(spec);
+  BlockLevel generate(LevelSpec spec) => generateBlockLevel(spec, sudoku: sudoku);
 
   @override
   Validation validate(BlockLevel level, LevelSpec spec) {

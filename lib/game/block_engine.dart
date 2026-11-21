@@ -87,6 +87,9 @@ class BlockLevel {
   final bool zen;
   final int aiMoves;
 
+  /// Sub-grid size whose full squares also clear (3 = Block Sudoku), 0 = off.
+  final int box;
+
   const BlockLevel({
     required this.size,
     required this.cells,
@@ -99,6 +102,7 @@ class BlockLevel {
     required this.difficulty,
     required this.zen,
     required this.aiMoves,
+    this.box = 0,
   });
 
   BlockLevel withAi(int moves, int limit) => BlockLevel(
@@ -113,6 +117,7 @@ class BlockLevel {
         difficulty: difficulty,
         zen: zen,
         aiMoves: moves,
+        box: box,
       );
 }
 
@@ -248,20 +253,31 @@ class BlockGame {
 
   bool get lost => exploded || (!won && (outOfMoves || (!hasMove && !level.zen)));
 
-  /// Rows/cols that would clear if piece were placed (for preview glow).
+  /// Line codes: 0..size-1 rows, size..2*size-1 columns, 2*size.. boxes.
+  List<int> cellsOfLine(int code) {
+    if (code < size) return [for (var k = 0; k < size; k++) idx(k, code)];
+    if (code < 2 * size) return [for (var k = 0; k < size; k++) idx(code - size, k)];
+    final b = level.box, per = size ~/ b, i = code - 2 * size;
+    final bx = (i % per) * b, by = (i ~/ per) * b;
+    return [for (var dy = 0; dy < b; dy++) for (var dx = 0; dx < b; dx++) idx(bx + dx, by + dy)];
+  }
+
+  List<int> _fullLines(List<int> grid) {
+    final out = <int>[];
+    final nBox = level.box > 0 ? (size ~/ level.box) * (size ~/ level.box) : 0;
+    for (var code = 0; code < 2 * size + nBox; code++) {
+      if (cellsOfLine(code).every((i) => Cell.filled(grid[i]))) out.add(code);
+    }
+    return out;
+  }
+
+  /// Rows/cols (and boxes) that would clear if piece were placed (preview glow).
   List<int> wouldClear(BlockPiece p, int x, int y) {
     final tmp = List.of(cells);
     for (final c in p.cells) {
       tmp[idx(x + c[0], y + c[1])] = 1;
     }
-    final out = <int>[];
-    for (var r = 0; r < size; r++) {
-      if (List.generate(size, (i) => tmp[idx(i, r)]).every(Cell.filled)) out.add(r);
-    }
-    for (var col = 0; col < size; col++) {
-      if (List.generate(size, (i) => tmp[idx(col, i)]).every(Cell.filled)) out.add(size + col);
-    }
-    return out;
+    return _fullLines(tmp);
   }
 
   PlaceResult place(int trayIndex, int x, int y) {
@@ -280,40 +296,9 @@ class BlockGame {
     tray[trayIndex] = null;
     var points = p.size;
 
-    // Find full lines.
-    final fullRows = <int>[];
-    final fullCols = <int>[];
-    for (var r = 0; r < size; r++) {
-      var ok = true;
-      for (var c = 0; c < size; c++) {
-        if (!Cell.filled(cells[idx(c, r)])) {
-          ok = false;
-          break;
-        }
-      }
-      if (ok) fullRows.add(r);
-    }
-    for (var c = 0; c < size; c++) {
-      var ok = true;
-      for (var r = 0; r < size; r++) {
-        if (!Cell.filled(cells[idx(c, r)])) {
-          ok = false;
-          break;
-        }
-      }
-      if (ok) fullCols.add(c);
-    }
-    final toClear = <int>{};
-    for (final r in fullRows) {
-      for (var c = 0; c < size; c++) {
-        toClear.add(idx(c, r));
-      }
-    }
-    for (final c in fullCols) {
-      for (var r = 0; r < size; r++) {
-        toClear.add(idx(c, r));
-      }
-    }
+    // Find full lines (rows, columns and, in Block Sudoku, 3x3 boxes).
+    final full = _fullLines(cells);
+    final toClear = <int>{for (final code in full) ...cellsOfLine(code)};
     var gemsNow = 0;
     for (final i in toClear) {
       if (cells[i] == Cell.ice2) {
@@ -324,7 +309,7 @@ class BlockGame {
       if (gems.remove(i)) gemsNow++;
       bombs.remove(i);
     }
-    final n = fullRows.length + fullCols.length;
+    final n = full.length;
     if (n > 0) {
       combo++;
       if (combo > bestCombo) bestCombo = combo;
@@ -578,11 +563,12 @@ class BlockGame {
 }
 
 /// Builds a [BlockLevel] from a [LevelSpec] (no validation here).
-BlockLevel generateBlockLevel(LevelSpec spec) {
+BlockLevel generateBlockLevel(LevelSpec spec, {bool sudoku = false}) {
   final r = SeededRandom(spec.seed);
   final d = spec.difficulty;
   final big = spec.has('big_board');
-  final size = big ? 10 : 8;
+  final size = sudoku ? 9 : (big ? 10 : 8);
+  final box = sudoku ? 3 : 0;
   final cells = List<int>.filled(size * size, Cell.empty);
   final gems = <int>{};
   final bombs = <int, int>{};
@@ -603,7 +589,15 @@ BlockLevel generateBlockLevel(LevelSpec spec) {
         final x = i % size, y = i ~/ size;
         final rowFull = List.generate(size, (k) => cells[y * size + k]).every(Cell.filled);
         final colFull = List.generate(size, (k) => cells[k * size + x]).every(Cell.filled);
-        if (rowFull || colFull) {
+        var boxFull = false;
+        if (box > 0) {
+          final bx = x - x % box, by = y - y % box;
+          boxFull = [
+            for (var dy = 0; dy < box; dy++)
+              for (var dx = 0; dx < box; dx++) cells[(by + dy) * size + bx + dx]
+          ].every(Cell.filled);
+        }
+        if (rowFull || colFull || boxFull) {
           cells[i] = Cell.empty;
           continue;
         }
@@ -667,6 +661,7 @@ BlockLevel generateBlockLevel(LevelSpec spec) {
     difficulty: d,
     zen: zen,
     aiMoves: 0,
+    box: box,
   );
 }
 

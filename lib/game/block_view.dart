@@ -87,9 +87,7 @@ class _BlockViewState extends State<BlockView> {
       if (!ctx.reducedMotion) {
         final cells = <int>{};
         for (final line in clearing) {
-          for (var k = 0; k < game.size; k++) {
-            cells.add(line < game.size ? game.idx(k, line) : game.idx(line - game.size, k));
-          }
+          cells.addAll(game.cellsOfLine(line));
         }
         _flash = cells;
         Future<void>.delayed(const Duration(milliseconds: 260), () {
@@ -315,9 +313,7 @@ class _BlockViewState extends State<BlockView> {
     final lines = game.wouldClear(p, _hoverX!, _hoverY!);
     final out = <int>{};
     for (final line in lines) {
-      for (var k = 0; k < game.size; k++) {
-        out.add(line < game.size ? game.idx(k, line) : game.idx(line - game.size, k));
-      }
+      out.addAll(game.cellsOfLine(line));
     }
     return out;
   }
@@ -512,6 +508,18 @@ class _BoardPainter extends CustomPainter {
     final c = size.width / n;
     final bg = Paint()..color = Colors.black.withValues(alpha: 0.35);
     canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(10)), bg);
+    final box = game.level.box;
+    if (box > 0) {
+      // Block Sudoku: checkerboard tint marks the 3x3 boxes.
+      final tint = Paint()..color = Colors.white.withValues(alpha: 0.06);
+      for (var by = 0; by < n; by += box) {
+        for (var bx = 0; bx < n; bx += box) {
+          if (((bx + by) ~/ box).isOdd) {
+            canvas.drawRect(Rect.fromLTWH(bx * c, by * c, box * c, box * c), tint);
+          }
+        }
+      }
+    }
     final empty = Paint()..color = Colors.white.withValues(alpha: 0.08);
     Set<int> hintCells = {};
     final h = hint;
