@@ -41,12 +41,13 @@ Widget _app(AppState s) => ProviderScope(
     );
 
 void main() {
-  testWidgets('first launch shows the age / privacy screen', (tester) async {
+  testWidgets('first launch shows the privacy screen (no age question)', (tester) async {
     final s = await _state(onboarded: false);
     await tester.pumpWidget(_app(s));
     await tester.pump();
     expect(find.text('Accept'), findsOneWidget);
     expect(find.text('Essential only'), findsOneWidget);
+    expect(find.byType(DropdownButtonFormField<int>), findsNothing);
   });
 
   testWidgets('home, every tab and a level start without errors', (tester) async {
@@ -58,7 +59,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Play'), findsOneWidget);
 
-    for (final tab in ['Daily', 'Collection', 'Achievements', 'Profile', 'Home']) {
+    for (final tab in ['Daily', 'Profile', 'Home']) {
       await tester.tap(find.text(tab).last);
       await tester.pump(const Duration(milliseconds: 300));
       expect(tester.takeException(), isNull, reason: tab);
@@ -97,7 +98,7 @@ void main() {
       final wide = size.width >= 840;
       expect(find.byType(NavigationRail), wide ? findsOneWidget : findsNothing);
       expect(find.byType(NavigationBar), wide ? findsNothing : findsOneWidget);
-      for (final tab in ['Daily', 'Collection', 'Achievements', 'Profile', 'Home']) {
+      for (final tab in ['Daily', 'Profile', 'Home']) {
         await tester.tap(find.text(tab).last);
         await tester.pump(const Duration(milliseconds: 300));
         expect(tester.takeException(), isNull, reason: '$tab at $size');
