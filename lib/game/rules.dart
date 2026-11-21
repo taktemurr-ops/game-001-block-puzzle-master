@@ -9,7 +9,21 @@ class BlockRules extends GameRules<BlockLevel> {
   final bool sudoku;
   final String id;
 
-  BlockRules({this.sudoku = false, this.id = 'game-001-block-puzzle-master'});
+  /// Variant options (Blok çeşit paketi): board size, clearing box, shape set
+  /// and mechanics that are always on.
+  final int? boardSize;
+  final int? boxSize;
+  final List<int> shapes;
+  final List<String> forced;
+
+  BlockRules({
+    this.sudoku = false,
+    this.id = 'game-001-block-puzzle-master',
+    this.boardSize,
+    this.boxSize,
+    this.shapes = const [],
+    this.forced = const [],
+  });
 
   @override
   String get gameId => id;
@@ -44,7 +58,13 @@ class BlockRules extends GameRules<BlockLevel> {
       ];
 
   @override
-  BlockLevel generate(LevelSpec spec) => generateBlockLevel(spec, sudoku: sudoku);
+  BlockLevel generate(LevelSpec spec) {
+    final endless = spec.mode == GameModeId.endless || spec.mode == GameModeId.timeAttack || spec.mode == GameModeId.zen;
+    final s = forced.isEmpty || endless
+        ? spec
+        : spec.copyWith(mechanics: {...spec.mechanics, ...forced}.toList());
+    return generateBlockLevel(s, sudoku: sudoku, boardSize: boardSize, boxSize: boxSize, shapes: shapes);
+  }
 
   @override
   Validation validate(BlockLevel level, LevelSpec spec) {
