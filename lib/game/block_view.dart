@@ -217,7 +217,35 @@ class _BlockViewState extends State<BlockView> {
       return;
     }
     final sel = _selected;
-    if (sel != null) _place(sel, cell.$1, cell.$2);
+    if (sel != null) {
+      final p = game.tray[sel];
+      if (p == null) return;
+      final a = _anchorCovering(p, cell.$1, cell.$2);
+      _place(sel, a.$1, a.$2);
+    }
+  }
+
+  /// Tap placement: the tapped cell may be *any* cell of the piece (not only
+  /// its top-left), so tapping the bottom row or right column works too.
+  (int, int) _anchorCovering(BlockPiece p, int tx, int ty) {
+    for (final c in p.cells) {
+      final x = tx - c[0], y = ty - c[1];
+      if (game.canPlace(p, x, y)) return (x, y);
+    }
+    return (tx, ty);
+  }
+
+  /// Drag placement: if the exact cell under the piece does not fit, snap to
+  /// the nearest fitting position within one cell (edges, small finger drift).
+  (int, int)? _snap(BlockPiece p, (int, int)? c) {
+    if (c == null) return null;
+    if (game.canPlace(p, c.$1, c.$2)) return c;
+    const order = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (-1, 1), (1, -1), (-1, -1)];
+    for (final d in order) {
+      final x = c.$1 + d.$1, y = c.$2 + d.$2;
+      if (game.canPlace(p, x, y)) return (x, y);
+    }
+    return c;
   }
 
   @override
@@ -235,7 +263,7 @@ class _BlockViewState extends State<BlockView> {
               final p = game.tray[d.data];
               if (p == null) return;
               final topLeft = d.offset + _feedbackShift(p, cell);
-              final c = _cellAt(topLeft, p, fromDrag: true);
+              final c = _snap(p, _cellAt(topLeft, p, fromDrag: true));
               setState(() {
                 _hoverTray = d.data;
                 _hoverX = c?.$1;
