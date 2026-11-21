@@ -73,7 +73,7 @@ final gameConfig = GameConfig(
       'Đặt khối, nổ hàng!',
       'Maglagay ng bloke, pasabugin ang linya!',
     ],
-  seedColor: const Color(0xFF3F51B5),
+  seedColor: const Color(0xFF34558B),
   icon: Icons.grid_view_rounded,
   rules: BlockRules(),
   buildPlay: (ctx) => BlockView(ctx: ctx),
