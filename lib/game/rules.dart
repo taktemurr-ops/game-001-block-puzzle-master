@@ -5,6 +5,10 @@ import 'package:studio_core/core/stats.dart';
 import 'block_engine.dart';
 
 class BlockRules extends GameRules<BlockLevel> {
+  /// Üretim + çözücü türü: 100.000 numaralı bölüm (1000 dünya).
+  @override
+  int get levelCount => 100000;
+
   /// Block Sudoku variant: 9x9 board where full 3x3 boxes also clear.
   final bool sudoku;
   final String id;
