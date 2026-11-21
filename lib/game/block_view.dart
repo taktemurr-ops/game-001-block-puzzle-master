@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:studio_core/core/strings.dart';
 import 'package:studio_core/app/game_api.dart';
 import 'package:studio_core/app/services/audio.dart';
 import 'package:studio_core/core/game_rules.dart';
@@ -350,7 +351,7 @@ class _BlockViewState extends State<BlockView> {
     final goal = level.goal;
     final goalText = switch (goal.type) {
       GoalType.score => '${t('score')} ${game.score}${goal.target > 0 ? ' / ${goal.target}' : ''}',
-      GoalType.lines => '${ctx.lang == 'tr' ? 'Satır' : 'Lines'} ${game.lines} / ${goal.target}',
+      GoalType.lines => '${Strings.tx(ctx.lang, 'Satır', 'Lines')} ${game.lines} / ${goal.target}',
       GoalType.gems => '💎 ${game.gemsCollected} / ${goal.target}',
       GoalType.survive => '${t('moves')} ${game.moves} / ${goal.target}',
     };
