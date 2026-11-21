@@ -90,6 +90,9 @@ class BlockLevel {
   /// Sub-grid size whose full squares also clear (3 = Block Sudoku), 0 = off.
   final int box;
 
+  /// Allowed [kShapes] indices; empty = all shapes.
+  final List<int> shapes;
+
   const BlockLevel({
     required this.size,
     required this.cells,
@@ -103,6 +106,7 @@ class BlockLevel {
     required this.zen,
     required this.aiMoves,
     this.box = 0,
+    this.shapes = const [],
   });
 
   BlockLevel withAi(int moves, int limit) => BlockLevel(
@@ -118,6 +122,7 @@ class BlockLevel {
         zen: zen,
         aiMoves: moves,
         box: box,
+        shapes: shapes,
       );
 }
 
@@ -173,7 +178,9 @@ class BlockGame {
   BlockPiece _draw() {
     _draws++;
     final d = level.difficulty;
+    final allowed = level.shapes;
     final weights = List<int>.generate(kShapes.length, (i) {
+      if (allowed.isNotEmpty && !allowed.contains(i)) return 0;
       final n = kShapes[i].length;
       if (n <= 2) return (14 - d).clamp(3, 14);
       if (n == 3) return 10;
@@ -563,12 +570,15 @@ class BlockGame {
 }
 
 /// Builds a [BlockLevel] from a [LevelSpec] (no validation here).
-BlockLevel generateBlockLevel(LevelSpec spec, {bool sudoku = false}) {
+BlockLevel generateBlockLevel(LevelSpec spec,
+    {bool sudoku = false, int? boardSize, int? boxSize, List<int> shapes = const []}) {
   final r = SeededRandom(spec.seed);
   final d = spec.difficulty;
   final big = spec.has('big_board');
-  final size = sudoku ? 9 : (big ? 10 : 8);
-  final box = sudoku ? 3 : 0;
+  final size = boardSize ?? (sudoku ? 9 : (big ? 10 : 8));
+  final box = boxSize ?? (sudoku ? 3 : 0);
+  // Variant boards scale obstacle counts by area (classic 8/9 boards unchanged).
+  int area(int n) => boardSize == null ? n : (n * size * size / 64).round();
   final cells = List<int>.filled(size * size, Cell.empty);
   final gems = <int>{};
   final bombs = <int, int>{};
@@ -578,8 +588,8 @@ BlockLevel generateBlockLevel(LevelSpec spec, {bool sudoku = false}) {
 
   if (!endless) {
     // Obstacles: stones / ice placed without forming full lines.
-    final obstacles = spec.has('obstacle') ? 2 + d : (d >= 4 ? d - 2 : 0);
-    final ice = spec.has('ice') ? 2 + d ~/ 2 : 0;
+    final obstacles = area(spec.has('obstacle') ? 2 + d : (d >= 4 ? d - 2 : 0));
+    final ice = area(spec.has('ice') ? 2 + d ~/ 2 : 0);
     void scatter(int count, int code) {
       var guard = 0;
       while (count > 0 && guard++ < 500) {
@@ -608,7 +618,7 @@ BlockLevel generateBlockLevel(LevelSpec spec, {bool sudoku = false}) {
     scatter(obstacles, Cell.stone);
     scatter(ice, Cell.ice2);
     // Pre-filled colored rubble for higher difficulties.
-    scatter(d >= 6 ? d * 2 : 0, 1 + r.nextInt(8));
+    scatter(area(d >= 6 ? d * 2 : 0), 1 + r.nextInt(8));
     if (spec.has('gem')) {
       final filled = [for (var i = 0; i < cells.length; i++) if (cells[i] != Cell.empty) i];
       r.shuffle(filled);
@@ -662,6 +672,7 @@ BlockLevel generateBlockLevel(LevelSpec spec, {bool sudoku = false}) {
     zen: zen,
     aiMoves: 0,
     box: box,
+    shapes: shapes,
   );
 }
 
