@@ -228,11 +228,11 @@ class _BlockViewState extends State<BlockView> {
     return LayoutBuilder(builder: (context, cons) {
       final boardSize = (cons.maxWidth - 24).clamp(200.0, (cons.maxHeight * 0.58).clamp(200.0, 720.0));
       final cell = boardSize / game.size;
-      return Column(children: [
-        _hud(t),
-        const SizedBox(height: 8),
-        Center(
-          child: DragTarget<int>(
+      // The whole play area is the drop target: the dragged piece is drawn
+      // above the finger, so when aiming at the bottom rows the finger is
+      // below the board. Only the board was a target before, which made
+      // pieces impossible to drop on the lower rows.
+      return DragTarget<int>(
             onMove: (d) {
               final p = game.tray[d.data];
               if (p == null) return;
@@ -250,7 +250,11 @@ class _BlockViewState extends State<BlockView> {
               setState(() => _hoverTray = null);
               if (x != null && y != null) _place(d.data, x, y);
             },
-            builder: (c, _, __) => GestureDetector(
+            builder: (c, _, __) => Column(children: [
+        _hud(t),
+        const SizedBox(height: 8),
+        Center(
+          child: GestureDetector(
               onTapUp: _onBoardTap,
               child: Semantics(
                 label: 'board',
@@ -275,11 +279,11 @@ class _BlockViewState extends State<BlockView> {
               ),
             ),
           ),
-        ),
         const SizedBox(height: 12),
         Expanded(child: _tray(cell)),
         _boosters(t),
-      ]);
+      ]),
+      );
     });
   }
 
