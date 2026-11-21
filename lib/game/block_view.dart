@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../app/game_api.dart';
-import '../app/services/audio.dart';
-import '../core/game_rules.dart';
+import 'package:studio_core/app/game_api.dart';
+import 'package:studio_core/app/services/audio.dart';
+import 'package:studio_core/core/game_rules.dart';
 import 'block_engine.dart';
 import 'rules.dart';
 
