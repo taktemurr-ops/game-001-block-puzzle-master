@@ -262,15 +262,25 @@ class _WheelPainter extends CustomPainter {
       final paint = Paint()..color = HSLColor.fromAHSL(1, i * 360 / n, 0.7, 0.55).toColor();
       canvas.drawArc(rect, -math.pi / 2 + i * sweep, sweep, true, paint);
       final reward = DailySystems.wheelSlices[i];
-      final label = reward.coins > 0
-          ? '${reward.coins}'
+      // Material icon glyphs (bundled font) instead of emoji: emoji need a
+      // system/web font that is not always available (web, older Android).
+      final (IconData? icon, int amount) = reward.coins > 0
+          ? (null, reward.coins)
           : reward.gems > 0
-              ? '💎${reward.gems}'
+              ? (Icons.diamond, reward.gems)
               : reward.hints > 0
-                  ? '💡${reward.hints}'
-                  : '⚡${reward.boosters}';
+                  ? (Icons.lightbulb, reward.hints)
+                  : (Icons.bolt, reward.boosters);
+      const style = TextStyle(color: Colors.white, fontWeight: FontWeight.bold);
       final tp = TextPainter(
-        text: TextSpan(text: label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        text: TextSpan(style: style, children: [
+          if (icon != null)
+            TextSpan(
+              text: String.fromCharCode(icon.codePoint),
+              style: TextStyle(fontFamily: icon.fontFamily, package: icon.fontPackage, color: Colors.white),
+            ),
+          TextSpan(text: '$amount'),
+        ]),
         textDirection: TextDirection.ltr,
       )..layout();
       final a = -math.pi / 2 + (i + 0.5) * sweep;
