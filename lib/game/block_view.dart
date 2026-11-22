@@ -352,7 +352,7 @@ class _BlockViewState extends State<BlockView> {
     final goalText = switch (goal.type) {
       GoalType.score => '${t('score')} ${game.score}${goal.target > 0 ? ' / ${goal.target}' : ''}',
       GoalType.lines => '${Strings.tx(ctx.lang, 'Satır', 'Lines')} ${game.lines} / ${goal.target}',
-      GoalType.gems => '💎 ${game.gemsCollected} / ${goal.target}',
+      GoalType.gems => '◆ ${game.gemsCollected} / ${goal.target}',
       GoalType.survive => '${t('moves')} ${game.moves} / ${goal.target}',
     };
     final chips = <Widget>[
@@ -535,12 +535,17 @@ class _BoardPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final n = game.size;
     final c = size.width / n;
-    final bg = Paint()..color = Colors.black.withValues(alpha: 0.35);
-    canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(10)), bg);
+    final frame = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(12));
+    canvas.drawRRect(frame.shift(const Offset(0, 4)), Paint()..color = Colors.black.withValues(alpha: 0.25));
+    canvas.drawRRect(frame, Paint()..color = const Color(0xFF16203A).withValues(alpha: 0.82));
+    canvas.drawRRect(frame, Paint()
+      ..color = Colors.white.withValues(alpha: 0.18)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2);
     final box = game.level.box;
     if (box > 0) {
       // Block Sudoku: checkerboard tint marks the 3x3 boxes.
-      final tint = Paint()..color = Colors.white.withValues(alpha: 0.06);
+      final tint = Paint()..color = Colors.white.withValues(alpha: 0.07);
       for (var by = 0; by < n; by += box) {
         for (var bx = 0; bx < n; bx += box) {
           if (((bx + by) ~/ box).isOdd) {
@@ -549,7 +554,11 @@ class _BoardPainter extends CustomPainter {
         }
       }
     }
-    final empty = Paint()..color = Colors.white.withValues(alpha: 0.08);
+    final empty = Paint()..color = Colors.white.withValues(alpha: 0.10);
+    final emptyRim = Paint()
+      ..color = Colors.white.withValues(alpha: 0.07)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
     Set<int> hintCells = {};
     final h = hint;
     if (h != null) {
@@ -564,6 +573,7 @@ class _BoardPainter extends CustomPainter {
         final v = game.cells[i];
         if (v == Cell.empty) {
           canvas.drawRRect(r, empty);
+          canvas.drawRRect(r.deflate(1), emptyRim);
         } else if (v == Cell.stone) {
           canvas.drawRRect(r, Paint()..color = const Color(0xFF6B6B6B));
           canvas.drawLine(r.outerRect.topLeft + Offset(c * .25, c * .3), r.outerRect.center, Paint()..color = Colors.black38..strokeWidth = 2);
@@ -572,14 +582,37 @@ class _BoardPainter extends CustomPainter {
           canvas.drawRRect(r, Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 2);
         } else {
           final col = colors[(v - 1) % colors.length];
-          canvas.drawRRect(r, Paint()..color = col);
+          canvas.drawRRect(r.shift(Offset(0, c * 0.06)), Paint()..color = Color.lerp(col, Colors.black, 0.45)!);
+          canvas.drawRRect(
+              r,
+              Paint()
+                ..shader = LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color.lerp(col, Colors.white, 0.18)!, col, Color.lerp(col, Colors.black, 0.15)!],
+                ).createShader(r.outerRect));
           canvas.drawRRect(
               RRect.fromRectAndRadius(Rect.fromLTWH(x * c + 4, y * c + 4, c - 8, (c - 8) * 0.35), Radius.circular(c * 0.1)),
               Paint()..color = Colors.white.withValues(alpha: 0.25));
           if (colorBlind) _text(canvas, symbol(v - 1), Offset(x * c + c / 2, y * c + c / 2), c * 0.45, Colors.white);
         }
         if (game.gems.contains(i)) {
-          _text(canvas, '💎', Offset(x * c + c / 2, y * c + c / 2), c * 0.5, Colors.white);
+          final o = Offset(x * c + c / 2, y * c + c / 2), d = c * 0.26;
+          canvas.drawPath(
+              Path()
+                ..moveTo(o.dx, o.dy - d)
+                ..lineTo(o.dx + d * 0.85, o.dy - d * 0.2)
+                ..lineTo(o.dx, o.dy + d)
+                ..lineTo(o.dx - d * 0.85, o.dy - d * 0.2)
+                ..close(),
+              Paint()..color = const Color(0xFF7FE3FF));
+          canvas.drawPath(
+              Path()
+                ..moveTo(o.dx, o.dy - d)
+                ..lineTo(o.dx + d * 0.85, o.dy - d * 0.2)
+                ..lineTo(o.dx, o.dy - d * 0.05)
+                ..close(),
+              Paint()..color = Colors.white.withValues(alpha: 0.6));
         }
         final bomb = game.bombs[i];
         if (bomb != null) {
