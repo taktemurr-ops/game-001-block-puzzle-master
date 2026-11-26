@@ -15,15 +15,29 @@ final Map<StudioLook, ThemeData> _studioThemes = {};
 /// Block Puzzle play screen: drag & drop (or tap-to-place), live preview,
 /// line-clear highlight, boosters (hint, undo, hammer, refresh, rotate),
 /// timer / move limit / bombs, resume after app kill.
-class BlockView extends StatefulWidget {
+/// Oyun ekranı: düğmeler, çipler, üst bilgi ve pencereler onaylı koyu
+/// tasarımda (merkezin paleti, studio-core StudioLook); tahta çizimi kendi
+/// renklerini korur.
+class BlockView extends StatelessWidget {
   final PlayContext ctx;
   const BlockView({super.key, required this.ctx});
 
   @override
-  State<BlockView> createState() => _BlockViewState();
+  Widget build(BuildContext context) {
+    final look = StudioLook.of(context);
+    return Theme(data: _studioThemes[look] ??= buildStudioTheme(look), child: BlockViewBody(ctx: ctx));
+  }
 }
 
-class _BlockViewState extends State<BlockView> {
+class BlockViewBody extends StatefulWidget {
+  final PlayContext ctx;
+  const BlockViewBody({super.key, required this.ctx});
+
+  @override
+  State<BlockViewBody> createState() => _BlockViewState();
+}
+
+class _BlockViewState extends State<BlockViewBody> {
   late BlockGame game;
   late BlockLevel level;
   final GlobalKey _boardKey = GlobalKey();
@@ -252,15 +266,8 @@ class _BlockViewState extends State<BlockView> {
     return c;
   }
 
-  /// Oyun içi düğmeler, çipler ve yazılar onaylı koyu tasarımda (merkezin
-  /// paleti); tahta çizimi kendi renklerini korur.
   @override
   Widget build(BuildContext context) {
-    final look = StudioLook.of(context);
-    return Theme(data: _studioThemes[look] ??= buildStudioTheme(look), child: Builder(builder: _build));
-  }
-
-  Widget _build(BuildContext context) {
     final t = ctx.t;
     return LayoutBuilder(builder: (context, cons) {
       final boardSize = (cons.maxWidth - 24).clamp(200.0, (cons.maxHeight * 0.58).clamp(200.0, 720.0));
