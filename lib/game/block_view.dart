@@ -6,8 +6,11 @@ import 'package:studio_core/core/strings.dart';
 import 'package:studio_core/app/game_api.dart';
 import 'package:studio_core/app/services/audio.dart';
 import 'package:studio_core/core/game_rules.dart';
+import 'package:studio_core/app/studio_ui.dart';
 import 'block_engine.dart';
 import 'rules.dart';
+
+final Map<StudioLook, ThemeData> _studioThemes = {};
 
 /// Block Puzzle play screen: drag & drop (or tap-to-place), live preview,
 /// line-clear highlight, boosters (hint, undo, hammer, refresh, rotate),
@@ -249,8 +252,15 @@ class _BlockViewState extends State<BlockView> {
     return c;
   }
 
+  /// Oyun içi düğmeler, çipler ve yazılar onaylı koyu tasarımda (merkezin
+  /// paleti); tahta çizimi kendi renklerini korur.
   @override
   Widget build(BuildContext context) {
+    final look = StudioLook.of(context);
+    return Theme(data: _studioThemes[look] ??= buildStudioTheme(look), child: Builder(builder: _build));
+  }
+
+  Widget _build(BuildContext context) {
     final t = ctx.t;
     return LayoutBuilder(builder: (context, cons) {
       final boardSize = (cons.maxWidth - 24).clamp(200.0, (cons.maxHeight * 0.58).clamp(200.0, 720.0));
