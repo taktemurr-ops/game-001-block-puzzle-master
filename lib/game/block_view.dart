@@ -371,6 +371,7 @@ class _BlockViewState extends State<BlockViewBody> {
       GoalType.lines => '${Strings.tx(ctx.lang, 'Satır', 'Lines')} ${game.lines} / ${goal.target}',
       GoalType.gems => '◆ ${game.gemsCollected} / ${goal.target}',
       GoalType.survive => '${t('moves')} ${game.moves} / ${goal.target}',
+      GoalType.picture => '▦ ${game.revealed.length} / ${goal.target}',
     };
     final chips = <Widget>[
       _chip(Icons.flag, goalText),
@@ -588,9 +589,23 @@ class _BoardPainter extends CustomPainter {
         final r = RRect.fromRectAndRadius(
             Rect.fromLTWH(x * c + 1.5, y * c + 1.5, c - 3, c - 3), Radius.circular(c * 0.15));
         final v = game.cells[i];
-        if (v == Cell.empty) {
+        final pic = game.level.picture.isEmpty ? 0 : game.level.picture[i];
+        if (v == Cell.empty && pic > 0 && game.revealed.contains(i)) {
+          // Blok Macerası: açılmış resim karesi (mozaik taş).
+          final pc = colors[(pic - 1) % colors.length];
+          canvas.drawRRect(r, Paint()..color = Color.lerp(pc, Colors.white, 0.12)!);
+          canvas.drawRRect(r.deflate(c * 0.12), Paint()
+            ..color = Colors.white.withValues(alpha: 0.35)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5);
+          if (colorBlind) _text(canvas, symbol(pic - 1), Offset(x * c + c / 2, y * c + c / 2), c * 0.4, Colors.black.withValues(alpha: 0.45));
+        } else if (v == Cell.empty) {
           canvas.drawRRect(r, empty);
           canvas.drawRRect(r.deflate(1), emptyRim);
+          if (pic > 0) {
+            // gizli resim: soluk desen ipucu
+            canvas.drawCircle(r.outerRect.center, c * 0.09, Paint()..color = Colors.white.withValues(alpha: 0.22));
+          }
         } else if (v == Cell.stone) {
           canvas.drawRRect(r, Paint()..color = const Color(0xFF6B6B6B));
           canvas.drawLine(r.outerRect.topLeft + Offset(c * .25, c * .3), r.outerRect.center, Paint()..color = Colors.black38..strokeWidth = 2);

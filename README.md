@@ -60,3 +60,7 @@ Uzun testler: `flutter test --dart-define=LONG=true test/long_run_test.dart test
 ## Yayın öncesi yapılacaklar
 
 `docs/RELEASE.md` dosyasına bak: AdMob kimlikleri, mağaza ürünleri, imzalama anahtarları, gizlilik politikası adresi.
+
+## Blok Macerası (oyun-blok-macerasi)
+
+Aynı motorla çalışan macera kipi (`lib/game/adventure_config.dart`, kimlik `oyun-blok-macerasi`): her bölümde tahtanın altına prosedürel bir resim (lale, kilim, yıldız, balık, ev, ağaç, hilal, güneş, çiçek, kalp) gizlenir; temizlenen satır ve sütunlar altındaki resim karelerini açar, bütün resim açılınca bölüm biter. 100.000 bölüm; her biri yapay zekâ ile doğrulanır. Ayrı depo açılmadı (EK_PLAN_4: "mevcut game-001 için meta kip").

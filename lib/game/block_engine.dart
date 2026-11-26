@@ -1,6 +1,8 @@
 import 'package:studio_core/core/level_plan.dart';
 import 'package:studio_core/core/rng.dart';
 
+import 'picture_art.dart';
+
 /// Polyomino piece. Cells are (x, y) offsets with min x = min y = 0.
 class BlockPiece {
   final int shape;
@@ -65,7 +67,8 @@ class Cell {
   static bool filled(int v) => v != empty;
 }
 
-enum GoalType { score, lines, gems, survive }
+/// [picture]: Blok Macerası — temizlenen satırlar alttaki resmi açar.
+enum GoalType { score, lines, gems, survive, picture }
 
 class BlockGoal {
   final GoalType type;
@@ -93,6 +96,9 @@ class BlockLevel {
   /// Allowed [kShapes] indices; empty = all shapes.
   final List<int> shapes;
 
+  /// Blok Macerası: hücre başına gizli resim rengi (0 yok); boşsa resim yok.
+  final List<int> picture;
+
   const BlockLevel({
     required this.size,
     required this.cells,
@@ -107,6 +113,7 @@ class BlockLevel {
     required this.aiMoves,
     this.box = 0,
     this.shapes = const [],
+    this.picture = const [],
   });
 
   BlockLevel withAi(int moves, int limit) => BlockLevel(
@@ -123,6 +130,7 @@ class BlockLevel {
         aiMoves: moves,
         box: box,
         shapes: shapes,
+        picture: picture,
       );
 }
 
@@ -158,6 +166,9 @@ class BlockGame {
   int gemsCollected = 0;
   int moves = 0;
   bool exploded = false;
+
+  /// Blok Macerası: açılmış resim hücreleri.
+  Set<int> revealed = {};
   final List<String> _undo = [];
 
   /// Disabled on AI clones for speed.
@@ -228,6 +239,8 @@ class BlockGame {
         return gemsCollected;
       case GoalType.survive:
         return moves;
+      case GoalType.picture:
+        return revealed.length;
     }
   }
 
@@ -308,6 +321,7 @@ class BlockGame {
     final toClear = <int>{for (final code in full) ...cellsOfLine(code)};
     var gemsNow = 0;
     for (final i in toClear) {
+      if (level.picture.isNotEmpty && level.picture[i] > 0) revealed.add(i);
       if (cells[i] == Cell.ice2) {
         cells[i] = Cell.ice1; // ice needs a second clear
         continue;
@@ -471,7 +485,7 @@ class BlockGame {
           if (!canPlace(p, x, y)) continue;
           final g = clone();
           final r = g.place(t, x, y);
-          final s = _evaluate(g, r);
+          final s = _evaluate(g, r) + (g.revealed.length - revealed.length) * 45;
           if (s > bestScore) {
             bestScore = s;
             best = Move(t, x, y);
@@ -496,6 +510,7 @@ class BlockGame {
     g.bestCombo = bestCombo;
     g.lines = lines;
     g.gemsCollected = gemsCollected;
+    g.revealed = Set.of(revealed);
     g.moves = moves;
     g.exploded = exploded;
     g.bonusMoves = bonusMoves;
@@ -518,6 +533,7 @@ class BlockGame {
         bombs.entries.map((e) => '${e.key}:${e.value}').join(','),
         tray.map((p) => p == null ? '-' : '${p.shape}.${p.color}.${p.cells.expand((e) => e).join('_')}').join(';'),
         '$score,$combo,$bestCombo,$lines,$gemsCollected,$moves,${exploded ? 1 : 0},$_draws,$bonusMoves',
+        revealed.join(','),
       ].join('|');
 
   void _restore(String snap) {
@@ -549,6 +565,7 @@ class BlockGame {
     moves = n[5];
     exploded = n[6] == 1;
     bonusMoves = n.length > 8 ? n[8] : 0;
+    revealed = parts.length > 5 && parts[5].isNotEmpty ? parts[5].split(',').map(int.parse).toSet() : <int>{};
     // Re-sync the RNG to the same draw count (deterministic stream).
     _rng = SeededRandom(level.seed);
     final target = n[7];
@@ -647,7 +664,11 @@ BlockLevel generateBlockLevel(LevelSpec spec,
   }
 
   BlockGoal goal;
-  if (endless) {
+  var picture = const <int>[];
+  if (!endless && spec.has('picture')) {
+    picture = blockPicture(size, d, r);
+    goal = BlockGoal(GoalType.picture, picture.where((v) => v > 0).length);
+  } else if (endless) {
     goal = const BlockGoal(GoalType.score, 0);
   } else if (gems.isNotEmpty) {
     goal = BlockGoal(GoalType.gems, gems.length);
@@ -673,6 +694,7 @@ BlockLevel generateBlockLevel(LevelSpec spec,
     aiMoves: 0,
     box: box,
     shapes: shapes,
+    picture: picture,
   );
 }
 
