@@ -6,21 +6,38 @@ import 'package:studio_core/core/strings.dart';
 import 'package:studio_core/app/game_api.dart';
 import 'package:studio_core/app/services/audio.dart';
 import 'package:studio_core/core/game_rules.dart';
+import 'package:studio_core/app/studio_ui.dart';
 import 'block_engine.dart';
 import 'rules.dart';
+
+final Map<StudioLook, ThemeData> _studioThemes = {};
 
 /// Block Puzzle play screen: drag & drop (or tap-to-place), live preview,
 /// line-clear highlight, boosters (hint, undo, hammer, refresh, rotate),
 /// timer / move limit / bombs, resume after app kill.
-class BlockView extends StatefulWidget {
+/// Oyun ekranı: düğmeler, çipler, üst bilgi ve pencereler onaylı koyu
+/// tasarımda (merkezin paleti, studio-core StudioLook); tahta çizimi kendi
+/// renklerini korur.
+class BlockView extends StatelessWidget {
   final PlayContext ctx;
   const BlockView({super.key, required this.ctx});
 
   @override
-  State<BlockView> createState() => _BlockViewState();
+  Widget build(BuildContext context) {
+    final look = StudioLook.of(context);
+    return Theme(data: _studioThemes[look] ??= buildStudioTheme(look), child: BlockViewBody(ctx: ctx));
+  }
 }
 
-class _BlockViewState extends State<BlockView> {
+class BlockViewBody extends StatefulWidget {
+  final PlayContext ctx;
+  const BlockViewBody({super.key, required this.ctx});
+
+  @override
+  State<BlockViewBody> createState() => _BlockViewState();
+}
+
+class _BlockViewState extends State<BlockViewBody> {
   late BlockGame game;
   late BlockLevel level;
   final GlobalKey _boardKey = GlobalKey();

@@ -8,6 +8,7 @@ import 'package:studio_core/app/screens/shop.dart';
 import 'package:studio_core/app/services/ads.dart';
 import 'package:studio_core/app/services/audio.dart';
 import 'package:studio_core/app/services/purchases.dart';
+import 'package:studio_core/app/studio_ui.dart' show StudioNavBar;
 import 'package:studio_core/core/game_session.dart';
 import 'package:studio_core/core/save_store.dart';
 import 'package:studio_core/core/telemetry.dart';
@@ -97,7 +98,7 @@ void main() {
       expect(tester.takeException(), isNull);
       final wide = size.width >= 840;
       expect(find.byType(NavigationRail), wide ? findsOneWidget : findsNothing);
-      expect(find.byType(NavigationBar), wide ? findsNothing : findsOneWidget);
+      expect(find.byType(StudioNavBar), wide ? findsNothing : findsOneWidget);
       for (final tab in ['Daily', 'Profile', 'Home']) {
         await tester.tap(find.text(tab).last);
         await tester.pump(const Duration(milliseconds: 300));
