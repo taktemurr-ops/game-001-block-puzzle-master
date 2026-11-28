@@ -127,3 +127,32 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  shots:
+    # Oyun testi ekran görüntüleri: yalnız elle çalıştırmada; görüntüler
+    # pt5-shots dalına eklenir (yapıt indirme ajan ağında kapalı).
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.9"
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test test/shots/shots_test.dart --dart-define=SHOTS=true --dart-define=IDS=${{ github.event.inputs.ids || '' }} || true
+      - name: Görüntüleri dala ekle
+        run: |
+          set -e
+          sudo apt-get -qq install -y imagemagick >/dev/null 2>&1 || true
+          mkdir -p /tmp/out && cd build/shots
+          for f in *.png; do convert "$f" -resize '720x720>' -quality 70 "/tmp/out/${f%.png}.jpg" || cp "$f" /tmp/out/; done
+          cd "$GITHUB_WORKSPACE"
+          git config user.name "shots-bot"; git config user.email "shots-bot@users.noreply.github.com"
+          if git fetch -q origin pt5-shots; then git checkout -q -B pt5-shots origin/pt5-shots; else git checkout -q --orphan pt5-shots; git rm -rqf . ; fi
+          rm -rf run && mkdir -p "runs/${GITHUB_RUN_ID}" && cp /tmp/out/* "runs/${GITHUB_RUN_ID}/"
+          git add runs && git commit -qm "shots ${GITHUB_RUN_ID}" && git push -q origin pt5-shots
