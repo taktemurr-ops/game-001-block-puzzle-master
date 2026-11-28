@@ -55,7 +55,7 @@ class BoardSkin {
         rim: Color.lerp(wood, Colors.black, 0.45)!,
         empty: Color.lerp(wood, Colors.black, 0.12)!,
         emptyRim: Color.lerp(wood, Colors.black, 0.28)!,
-        boxTint: Colors.black.withValues(alpha: 0.08),
+        boxTint: Colors.black.withValues(alpha: 0.13),
         wood: true,
       );
     }
@@ -796,6 +796,16 @@ class _BoardPainter extends CustomPainter {
         if (hintCells.contains(i)) {
           canvas.drawRRect(r, Paint()..color = Colors.yellowAccent..style = PaintingStyle.stroke..strokeWidth = 3);
         }
+      }
+    }
+    if (box > 0) {
+      // Blok Sudoku: 3x3 kutuların sınırları belirgin (Woodoku tarzı oyuk çizgi).
+      final line = Paint()
+        ..color = skin.rim.withValues(alpha: skin.wood ? 0.55 : 0.35)
+        ..strokeWidth = 2.6;
+      for (var k = box; k < n; k += box) {
+        canvas.drawLine(Offset(k * c, 4), Offset(k * c, size.height - 4), line);
+        canvas.drawLine(Offset(4, k * c), Offset(size.width - 4, k * c), line);
       }
     }
   }
