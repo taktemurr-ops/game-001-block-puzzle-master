@@ -25,13 +25,65 @@ class BlockView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final look = StudioLook.of(context);
-    return Theme(data: _studioThemes[look] ??= buildStudioTheme(look), child: BlockViewBody(ctx: ctx));
+    // Oyunun kendi tohum rengi (merkezin oyun teması): tahta çerçevesi ve
+    // zemini buna göre tonlanır; aynı motoru kullanan oyunlar ayrışır.
+    final seed = Theme.of(context).colorScheme.primary;
+    return Theme(data: _studioThemes[look] ??= buildStudioTheme(look), child: BlockViewBody(ctx: ctx, seed: seed));
   }
+}
+
+/// Booster adları (33 dil; sıra: tr en de es fr ar fa he ur ru uk pl cs ro hu el it pt nl sv da nb fi ja ko zh hi bn id ms th vi fil).
+const Map<String, List<String>> _kBoosterNames = {
+  'hammer': ['Çekiç', 'Hammer', 'Hammer', 'Martillo', 'Marteau', 'مطرقة', 'چکش', 'פטיש', 'ہتھوڑا', 'Молот', 'Молот', 'Młotek', 'Kladivo', 'Ciocan', 'Kalapács', 'Σφυρί', 'Martello', 'Martelo', 'Hamer', 'Hammare', 'Hammer', 'Hammer', 'Vasara', 'ハンマー', '망치', '锤子', 'हथौड़ा', 'হাতুড়ি', 'Palu', 'Tukul', 'ค้อน', 'Búa', 'Martilyo'],
+  'refresh': ['Yeni parçalar', 'New pieces', 'Neue Teile', 'Piezas nuevas', 'Nouvelles pièces', 'قطع جديدة', 'قطعه‌های تازه', 'חלקים חדשים', 'نئے ٹکڑے', 'Новые фигуры', 'Нові фігури', 'Nowe klocki', 'Nové dílky', 'Piese noi', 'Új elemek', 'Νέα κομμάτια', 'Nuovi pezzi', 'Novas peças', 'Nieuwe stukken', 'Nya bitar', 'Nye brikker', 'Nye brikker', 'Uudet palat', '新しいピース', '새 조각', '换一批', 'नए टुकड़े', 'নতুন টুকরো', 'Keping baru', 'Keping baharu', 'ชิ้นใหม่', 'Mảnh mới', 'Bagong piraso'],
+  'rotate': ['Döndür', 'Rotate', 'Drehen', 'Girar', 'Pivoter', 'تدوير', 'چرخاندن', 'סובב', 'گھمائیں', 'Повернуть', 'Повернути', 'Obróć', 'Otočit', 'Rotește', 'Forgatás', 'Περιστροφή', 'Ruota', 'Girar', 'Draaien', 'Rotera', 'Rotér', 'Roter', 'Kierrä', '回転', '회전', '旋转', 'घुमाएँ', 'ঘোরান', 'Putar', 'Putar', 'หมุน', 'Xoay', 'I-ikot'],
+};
+
+/// Tahta görünümü: koyu gece tahtası (Blok Bulmaca) ya da açık ahşap
+/// (Blok Sudoku, kutulu tahtalar); çerçeve ve zemin oyunun rengine göre.
+class BoardSkin {
+  final Color frame, rim, empty, emptyRim, boxTint;
+  final bool wood;
+  const BoardSkin({required this.frame, required this.rim, required this.empty, required this.emptyRim, required this.boxTint, required this.wood});
+
+  factory BoardSkin.of(Color seed, {required bool boxed}) {
+    final hsl = HSLColor.fromColor(seed);
+    if (boxed) {
+      final wood = HSLColor.fromAHSL(1, (28 + (hsl.hue - 28) * 0.15) % 360, 0.42, 0.66).toColor();
+      return BoardSkin(
+        frame: wood,
+        rim: Color.lerp(wood, Colors.black, 0.45)!,
+        empty: Color.lerp(wood, Colors.black, 0.12)!,
+        emptyRim: Color.lerp(wood, Colors.black, 0.28)!,
+        boxTint: Colors.black.withValues(alpha: 0.08),
+        wood: true,
+      );
+    }
+    final night = HSLColor.fromAHSL(1, hsl.hue, (hsl.saturation * 0.55).clamp(0.25, 0.5), 0.14).toColor();
+    return BoardSkin(
+      frame: night,
+      rim: HSLColor.fromAHSL(1, hsl.hue, 0.6, 0.62).toColor().withValues(alpha: 0.55),
+      empty: Colors.white.withValues(alpha: 0.10),
+      emptyRim: Colors.white.withValues(alpha: 0.07),
+      boxTint: Colors.white.withValues(alpha: 0.07),
+      wood: false,
+    );
+  }
+}
+
+/// Satır temizlenince tahtanın üstünde yükselen puan / kombo yazısı.
+class _Popup {
+  final String text;
+  final Offset at; // tahta içinde, hücre biriminde
+  final bool big;
+  final int born;
+  const _Popup(this.text, this.at, this.big, this.born);
 }
 
 class BlockViewBody extends StatefulWidget {
   final PlayContext ctx;
-  const BlockViewBody({super.key, required this.ctx});
+  final Color seed;
+  const BlockViewBody({super.key, required this.ctx, this.seed = const Color(0xFF34558B)});
 
   @override
   State<BlockViewBody> createState() => _BlockViewState();
@@ -52,6 +104,8 @@ class _BlockViewState extends State<BlockViewBody> {
   Timer? _timer;
   bool _ended = false;
   bool _paused = false;
+  final _popups = <_Popup>[];
+  int _popupClock = 0;
 
   PlayContext get ctx => widget.ctx;
 
@@ -100,6 +154,18 @@ class _BlockViewState extends State<BlockViewBody> {
     final r = game.place(tray, x, y);
     _selected = null;
     _hint = null;
+    if (r.points > 0 && !ctx.reducedMotion) {
+      // Puan yazısı parçanın ortasından yükselir; çoklu satır/kombo büyük yazılır.
+      final at = Offset(x + p.width / 2, y + p.height / 2);
+      final id = ++_popupClock;
+      _popups.add(_Popup('+${r.points}', at, false, id));
+      if (game.combo > 1 || r.lines > 1) {
+        _popups.add(_Popup(game.combo > 1 ? 'x${game.combo}' : '${r.lines}×', at.translate(0, -1.1), true, id));
+      }
+      Future<void>.delayed(const Duration(milliseconds: 900), () {
+        if (mounted) setState(() => _popups.removeWhere((e) => e.born == id));
+      });
+    }
     if (r.lines > 0) {
       ctx.sfx(game.combo > 1 ? Sfx.combo : Sfx.clear);
       if (!ctx.reducedMotion) {
@@ -306,8 +372,10 @@ class _BlockViewState extends State<BlockViewBody> {
                   key: _boardKey,
                   width: boardSize,
                   height: boardSize,
-                  child: CustomPaint(
+                  child: Stack(clipBehavior: Clip.none, children: [
+                    Positioned.fill(child: CustomPaint(
                     painter: _BoardPainter(
+                      skin: BoardSkin.of(widget.seed, boxed: game.level.box > 0),
                       game: game,
                       colors: ctx.pieceColors,
                       colorBlind: ctx.colorBlind,
@@ -318,7 +386,17 @@ class _BlockViewState extends State<BlockViewBody> {
                       hint: _hint,
                       symbol: ctx.symbol,
                     ),
-                  ),
+                  )),
+                    for (final pp in _popups)
+                      Positioned(
+                        key: ValueKey('pp${pp.born}${pp.big}'),
+                        left: pp.at.dx * cell - 60,
+                        top: pp.at.dy * cell - 22,
+                        width: 120,
+                        height: 44,
+                        child: IgnorePointer(child: _PopupText(text: pp.text, big: pp.big)),
+                      ),
+                  ]),
                 ),
               ),
             ),
@@ -451,12 +529,44 @@ class _BlockViewState extends State<BlockViewBody> {
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
         b(Icons.lightbulb, t('hint'), _useHint),
         b(Icons.undo, t('undo'), game.canUndo ? _undo : null),
-        b(Icons.gavel, 'Hammer', _toggleHammer, active: _hammer),
-        b(Icons.autorenew, 'Refresh', _refresh),
-        b(Icons.rotate_right, 'Rotate', _selected == null ? null : () => setState(() => game.rotate(_selected!))),
+        b(Icons.gavel, Strings.pick(_kBoosterNames['hammer']!, ctx.lang), _toggleHammer, active: _hammer),
+        b(Icons.autorenew, Strings.pick(_kBoosterNames['refresh']!, ctx.lang), _refresh),
+        b(Icons.rotate_right, Strings.pick(_kBoosterNames['rotate']!, ctx.lang),
+            _selected == null ? null : () => setState(() => game.rotate(_selected!))),
       ]),
     );
   }
+}
+
+/// Yükselip sönen puan yazısı.
+class _PopupText extends StatelessWidget {
+  final String text;
+  final bool big;
+  const _PopupText({required this.text, required this.big});
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 850),
+        builder: (context, t, child) => Opacity(
+          opacity: (t < 0.7 ? 1.0 : (1 - t) / 0.3).clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(0, -28 * t),
+            child: Transform.scale(scale: big ? 0.8 + 0.5 * Curves.elasticOut.transform(t.clamp(0.0, 1.0)) : 1, child: child),
+          ),
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: big ? const Color(0xFFFFD45C) : Colors.white,
+              fontSize: big ? 28 : 20,
+              fontWeight: FontWeight.w900,
+              shadows: const [Shadow(color: Colors.black87, blurRadius: 6, offset: Offset(0, 2))],
+            ),
+          ),
+        ),
+      );
 }
 
 class _PieceWidget extends StatelessWidget {
@@ -527,6 +637,7 @@ class _BlockTile extends StatelessWidget {
 }
 
 class _BoardPainter extends CustomPainter {
+  final BoardSkin skin;
   final BlockGame game;
   final List<Color> colors;
   final bool colorBlind;
@@ -538,6 +649,7 @@ class _BoardPainter extends CustomPainter {
   final String Function(int) symbol;
 
   _BoardPainter({
+    required this.skin,
     required this.game,
     required this.colors,
     required this.colorBlind,
@@ -555,15 +667,38 @@ class _BoardPainter extends CustomPainter {
     final c = size.width / n;
     final frame = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(12));
     canvas.drawRRect(frame.shift(const Offset(0, 4)), Paint()..color = Colors.black.withValues(alpha: 0.25));
-    canvas.drawRRect(frame, Paint()..color = const Color(0xFF16203A).withValues(alpha: 0.82));
+    if (skin.wood) {
+      canvas.drawRRect(
+          frame,
+          Paint()
+            ..shader = LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color.lerp(skin.frame, Colors.white, 0.12)!, skin.frame, Color.lerp(skin.frame, Colors.black, 0.1)!],
+            ).createShader(Offset.zero & size));
+      // ahşap damarı
+      final grain = Paint()
+        ..style = PaintingStyle.stroke
+        ..color = Colors.black.withValues(alpha: 0.06)
+        ..strokeWidth = 1.2;
+      for (var y = 6.0; y < size.height; y += 11) {
+        final path = Path()..moveTo(0, y);
+        for (var x = 0.0; x <= size.width + 16; x += 16) {
+          path.lineTo(x, y + 3 * (((x + y) ~/ 16).isEven ? 1 : -1) * 0.6);
+        }
+        canvas.drawPath(path, grain);
+      }
+    } else {
+      canvas.drawRRect(frame, Paint()..color = skin.frame.withValues(alpha: 0.9));
+    }
     canvas.drawRRect(frame, Paint()
-      ..color = Colors.white.withValues(alpha: 0.18)
+      ..color = skin.rim
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2);
+      ..strokeWidth = 2.4);
     final box = game.level.box;
     if (box > 0) {
       // Block Sudoku: checkerboard tint marks the 3x3 boxes.
-      final tint = Paint()..color = Colors.white.withValues(alpha: 0.07);
+      final tint = Paint()..color = skin.boxTint;
       for (var by = 0; by < n; by += box) {
         for (var bx = 0; bx < n; bx += box) {
           if (((bx + by) ~/ box).isOdd) {
@@ -572,9 +707,9 @@ class _BoardPainter extends CustomPainter {
         }
       }
     }
-    final empty = Paint()..color = Colors.white.withValues(alpha: 0.10);
+    final empty = Paint()..color = skin.empty;
     final emptyRim = Paint()
-      ..color = Colors.white.withValues(alpha: 0.07)
+      ..color = skin.emptyRim
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     Set<int> hintCells = {};
